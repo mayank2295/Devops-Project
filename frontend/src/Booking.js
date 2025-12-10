@@ -27,6 +27,8 @@ function Booking() {
   const [loading, setLoading] = useState(true);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [showUpiScanner, setShowUpiScanner] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     setLoading(true);
@@ -57,48 +59,88 @@ function Booking() {
       });
   }, [movieId, selectedCity]);
 
+  // Toast notification function
+  const showToast = (message, type = "info") => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3500);
+  };
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.body.classList.toggle("dark-mode");
+    document.body.classList.toggle("light-mode");
+  };
+
   const handleShowSelect = (show) => {
     setSelectedShow(show);
     setStep(2);
+    showToast(
+      `Show selected: ${show.theater.name} at ${show.timing}`,
+      "success"
+    );
   };
 
   const handleDetailsSubmit = () => {
     if (!userName || !userEmail || !userPhone) {
-      alert("Please fill in all your details");
+      showToast("Please fill in all your details", "error");
       return;
     }
+    showToast("Loading available seats...", "info");
     getSeatsByShow(selectedShow.id)
       .then((response) => {
         setSeats(response.data);
         setStep(3);
+        showToast(
+          `${response.data.filter((s) => !s.booked).length} seats available`,
+          "success"
+        );
       })
-      .catch((error) => console.error("Error fetching seats:", error));
+      .catch((error) => {
+        console.error("Error fetching seats:", error);
+        showToast("Failed to load seats. Please try again.", "error");
+      });
   };
 
   const toggleSeat = (seat) => {
-    if (seat.booked) return;
+    if (seat.booked) {
+      showToast("This seat is already booked", "error");
+      return;
+    }
 
     if (selectedSeats.find((s) => s.id === seat.id)) {
       setSelectedSeats(selectedSeats.filter((s) => s.id !== seat.id));
+      showToast(`Seat ${seat.seatNumber} deselected`, "info");
     } else {
+      if (selectedSeats.length >= 10) {
+        showToast("Maximum 10 seats can be selected", "error");
+        return;
+      }
       setSelectedSeats([...selectedSeats, seat]);
+      showToast(`Seat ${seat.seatNumber} selected`, "success");
     }
   };
 
   const proceedToPayment = () => {
     if (selectedSeats.length === 0) {
-      alert("Please select at least one seat");
+      showToast("Please select at least one seat", "error");
       return;
     }
     setStep(4);
+    showToast("Proceeding to payment...", "info");
   };
 
   const handlePayment = (paymentMethod) => {
+    showToast(`Payment method selected: ${paymentMethod}`, "info");
     if (paymentMethod === "UPI") {
       setShowUpiScanner(true);
     } else {
       // For other methods, complete booking directly
-      completeBooking();
+      showToast("Processing payment...", "info");
+      setTimeout(() => completeBooking(), 1000);
     }
   };
 
@@ -115,60 +157,167 @@ function Booking() {
       totalPrice: selectedSeats.length * 200,
     };
 
+    showToast("Creating your booking...", "info");
     createBooking(bookingData)
       .then(() => {
         setBookingSuccess(true);
+        showToast("Booking confirmed! 🎉", "success");
         setTimeout(() => (window.location.href = "/"), 4000);
       })
       .catch((error) => {
         console.error("Error creating booking:", error);
-        alert("Booking failed. Please try again.");
+        showToast("Booking failed. Please try again.", "error");
       });
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) {
+    return (
+      <div className={`booking-container ${darkMode ? "dark-mode" : ""}`}>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading booking details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (bookingSuccess) {
     return (
-      <div className="success-container">
+      <div className={`success-container ${darkMode ? "dark-mode" : ""}`}>
         <div className="success-message">
-          <div className="success-icon">✅</div>
-          <h2>Booking Confirmed!</h2>
-          <p className="success-detail">Movie: {movie.title}</p>
-          <p className="success-detail">
-            Theater: {selectedShow.theater.name}, {selectedShow.theater.city}
-          </p>
-          <p className="success-detail">Show Time: {selectedShow.timing}</p>
-          <p className="success-detail">
-            Seats: {selectedSeats.map((s) => s.seatNumber).join(", ")}
-          </p>
-          <p className="success-detail">
-            Total Paid: ₹{selectedSeats.length * 200}
-          </p>
-          <p className="redirect-msg">Redirecting to home...</p>
+          <div className="success-animation">
+            <div className="success-icon">✅</div>
+            <div className="confetti">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="confetti-piece"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    backgroundColor: [
+                      "#667eea",
+                      "#764ba2",
+                      "#f093fb",
+                      "#f5576c",
+                    ][Math.floor(Math.random() * 4)],
+                  }}
+                ></div>
+              ))}
+            </div>
+          </div>
+          <h2>🎉 Booking Confirmed!</h2>
+          <div className="success-details">
+            <div className="detail-row">
+              <span className="detail-label">🎬 Movie:</span>
+              <span className="detail-value">{movie.title}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">🎭 Theater:</span>
+              <span className="detail-value">
+                {selectedShow.theater.name}, {selectedShow.theater.city}
+              </span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">🕐 Show Time:</span>
+              <span className="detail-value">{selectedShow.timing}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">💺 Seats:</span>
+              <span className="detail-value">
+                {selectedSeats.map((s) => s.seatNumber).join(", ")}
+              </span>
+            </div>
+            <div className="detail-row total">
+              <span className="detail-label">💰 Total Paid:</span>
+              <span className="detail-value">
+                ₹{selectedSeats.length * 200}
+              </span>
+            </div>
+          </div>
+          <div className="success-footer">
+            <p className="redirect-msg">
+              ✨ Redirecting to home in 4 seconds...
+            </p>
+            <button
+              className="home-btn"
+              onClick={() => (window.location.href = "/")}
+            >
+              Go Home Now
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="booking-container">
+    <div className={`booking-container ${darkMode ? "dark-mode" : ""}`}>
+      {/* Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast ${toast.type}`}>
+            <span className="toast-icon">
+              {toast.type === "success" && "✅"}
+              {toast.type === "error" && "❌"}
+              {toast.type === "info" && "ℹ️"}
+            </span>
+            <span className="toast-message">{toast.message}</span>
+            <button
+              className="toast-close"
+              onClick={() =>
+                setToasts((prev) => prev.filter((t) => t.id !== toast.id))
+              }
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Dark Mode Toggle */}
+      <button className="dark-mode-toggle" onClick={toggleDarkMode}>
+        <span className="dark-mode-toggle-icon">{darkMode ? "☀️" : "🌙"}</span>
+        {darkMode ? "Light" : "Dark"} Mode
+      </button>
+
       <div className="progress-bar">
-        <div className={`progress-step ${step >= 1 ? "active" : ""}`}>
-          1. Select Show
+        <div
+          className={`progress-step ${step >= 1 ? "active" : ""} ${step > 1 ? "completed" : ""}`}
+        >
+          <span className="step-number">1</span>
+          <span className="step-text">Select Show</span>
         </div>
-        <div className={`progress-step ${step >= 2 ? "active" : ""}`}>
-          2. Enter Details
+        <div className="progress-line"></div>
+        <div
+          className={`progress-step ${step >= 2 ? "active" : ""} ${step > 2 ? "completed" : ""}`}
+        >
+          <span className="step-number">2</span>
+          <span className="step-text">Enter Details</span>
         </div>
-        <div className={`progress-step ${step >= 3 ? "active" : ""}`}>
-          3. Select Seats
+        <div className="progress-line"></div>
+        <div
+          className={`progress-step ${step >= 3 ? "active" : ""} ${step > 3 ? "completed" : ""}`}
+        >
+          <span className="step-number">3</span>
+          <span className="step-text">Select Seats</span>
         </div>
-        <div className={`progress-step ${step >= 4 ? "active" : ""}`}>
-          4. Payment
+        <div className="progress-line"></div>
+        <div
+          className={`progress-step ${step >= 4 ? "active" : ""} ${step > 4 ? "completed" : ""}`}
+        >
+          <span className="step-number">4</span>
+          <span className="step-text">Payment</span>
         </div>
       </div>
 
-      <button className="back-btn" onClick={() => (window.location.href = "/")}>
+      <button
+        className="back-btn"
+        onClick={() => {
+          showToast("Returning to movies...", "info");
+          setTimeout(() => (window.location.href = "/"), 500);
+        }}
+      >
         ← Back to Movies
       </button>
 

@@ -2,14 +2,18 @@
 
 A full-stack movie ticket booking application built with **Spring Boot** (Backend) and **React** (Frontend), featuring a complete booking flow with city-based filtering, show selection, seat booking, and payment simulation.
 
+> **🚀 Quick Deploy**: Use `deploy.bat` (Windows) or `deploy.sh` (Linux/Mac) for one-click deployment!
+
 ## ✨ Features
 
-- 🎥 **Movie Browsing** - Browse movies by city
+- 🎥 **Movie Browsing** - Browse movies by city with real TMDB posters
 - 🎭 **Theater & Show Selection** - View available theaters and show timings
 - 💺 **Seat Selection** - Interactive seat grid (50 seats per show)
-- 📱 **Payment Simulation** - Fake UPI scanner with QR code animation
+- 📱 **Payment Integration** - Razorpay payment gateway
 - ✅ **Booking Confirmation** - Real-time seat updates in database
 - 🔄 **Dynamic Updates** - Available seats decrease after booking
+- ✨ **Modern UI** - Glowing effects, smooth animations, Netflix-style design
+- 🐳 **Docker Ready** - Complete containerization with docker-compose
 
 ## 🛠️ Tech Stack
 
@@ -38,7 +42,34 @@ Before running this project, ensure you have:
 - 📦 **Node.js 16+** and npm
 - 🔨 **Maven 3.9+**
 
-## 🚀 Setup Instructions
+## 🚀 Quick Start
+
+### Option 1: Docker Deployment (Recommended) 🐳
+
+1. **Setup environment variables**:
+
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+2. **Deploy with one command**:
+
+```bash
+# Windows
+deploy.bat
+
+# Linux/Mac
+chmod +x deploy.sh
+./deploy.sh
+```
+
+3. **Access the application**:
+   - Frontend: http://localhost
+   - Backend API: http://localhost:8080/api
+   - MySQL: localhost:3306
+
+### Option 2: Manual Setup 🛠️
 
 ### 1️⃣ Database Setup
 
